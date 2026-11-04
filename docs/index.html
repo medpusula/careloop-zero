@@ -39,10 +39,33 @@
 html{scroll-behavior:smooth; scroll-padding-top:64px}
 @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
 body{
-  margin:0; background:var(--bg); color:var(--text);
+  margin:0; color:var(--text);
   font-family:"Work Sans",system-ui,sans-serif; font-size:16px; line-height:1.55;
+  background:
+    radial-gradient(ellipse 800px 520px at 12% -8%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%),
+    radial-gradient(ellipse 720px 520px at 102% 6%, color-mix(in srgb, var(--ai) 8%, transparent), transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
 }
 .wrap{max-width:880px; margin:0 auto; padding-left:max(20px, env(safe-area-inset-left,0px)); padding-right:max(20px, env(safe-area-inset-right,0px));}
+
+/* hero atmosphere */
+.bg-blobs{position:absolute; inset:0; overflow:hidden; z-index:0; pointer-events:none}
+.blob{position:absolute; border-radius:50%; filter:blur(70px); opacity:0.4; will-change:transform}
+.blob-1{width:380px; height:380px; background:var(--accent); top:-130px; left:-90px; animation:drift1 22s ease-in-out infinite}
+.blob-2{width:340px; height:340px; background:var(--ai); top:40px; right:-110px; animation:drift2 26s ease-in-out infinite}
+.blob-3{width:280px; height:280px; background:var(--accent); bottom:-150px; left:28%; animation:drift3 30s ease-in-out infinite}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(36px,28px) scale(1.08)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-32px,22px) scale(1.05)}}
+@keyframes drift3{0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(18px,-26px) scale(1.1)}}
+@media (prefers-reduced-motion: reduce){ .blob{animation:none} }
+.spotlight{
+  position:absolute; width:480px; height:480px; border-radius:50%; z-index:0; pointer-events:none;
+  left:var(--mx,50%); top:var(--my,30%); transform:translate(-50%,-50%);
+  background:radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%);
+  transition:left .4s ease, top .4s ease;
+}
+.hero .wrap{position:relative; z-index:1}
 
 /* top progress bar */
 .progress{position:fixed; top:0; left:0; height:3px; width:0%; background:var(--accent); z-index:100; transition:width .05s linear}
@@ -82,8 +105,9 @@ body{
   transition:transform .15s ease, opacity .15s ease, background-color .15s ease;
 }
 .btn:active{transform:translateY(1px)}
-.btn-primary{background:var(--accent); color:var(--accent-ink)}
-.btn-primary:hover{opacity:0.9}
+.btn:hover{transform:translateY(-2px)}
+.btn-primary{background:var(--accent); color:var(--accent-ink); box-shadow:0 6px 18px -8px color-mix(in srgb, var(--accent) 70%, transparent)}
+.btn-primary:hover{opacity:0.92}
 .btn-ghost{background:transparent; color:var(--text); border-color:var(--border)}
 .btn-ghost:hover{background:var(--surface-2)}
 .meta-row{display:flex; align-items:center; flex-wrap:wrap; gap:8px 10px}
@@ -98,6 +122,12 @@ body{
 .scroll-cue svg{width:14px; height:14px; animation:bob 1.8s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)}}
 @media (prefers-reduced-motion: reduce){ .scroll-cue svg{animation:none} }
+.scroll-cue{text-decoration:none; cursor:pointer}
+.scroll-cue:hover{color:var(--text)}
+.live-dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); margin-right:6px; position:relative; top:-1px}
+.live-dot::after{content:""; position:absolute; inset:-4px; border-radius:50%; border:1px solid var(--accent); animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{0%{transform:scale(0.6); opacity:0.8} 100%{transform:scale(2); opacity:0}}
+@media (prefers-reduced-motion: reduce){ .live-dot::after{animation:none} }
 
 /* generic section */
 section{padding-block:clamp(48px,8vw,88px)}
@@ -240,6 +270,12 @@ footer.site-foot{border-top:1px solid var(--border); padding-block:36px; padding
 </nav>
 
 <header class="hero" id="top">
+  <div class="bg-blobs" aria-hidden="true">
+    <span class="blob blob-1"></span>
+    <span class="blob blob-2"></span>
+    <span class="blob blob-3"></span>
+  </div>
+  <div class="spotlight" aria-hidden="true"></div>
   <div class="wrap">
     <svg class="hero-mark reveal" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <circle cx="12" cy="12" r="11" fill="var(--accent)"/>
@@ -256,10 +292,10 @@ footer.site-foot{border-top:1px solid var(--border); padding-block:36px; padding
       <span class="meta-chip">Solo-built prototype</span>
       <span class="meta-chip">Istanbul, Türkiye</span>
     </div>
-    <div class="scroll-cue">
+    <a class="scroll-cue" href="#problem">
       <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4v16M5 13l7 7 7-7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Scroll to see the problem
-    </div>
+    </a>
   </div>
 </header>
 
@@ -282,17 +318,17 @@ footer.site-foot{border-top:1px solid var(--border); padding-block:36px; padding
       <p>A small, focused tool that does one job well: hold the next step, and make sure it's visible.</p>
     </div>
     <div class="feature-grid">
-      <div class="feature-card reveal">
+      <div class="feature-card" data-tilt data-tilt-max="7" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.12">
         <svg class="ic" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="var(--accent)" stroke-width="1.6"/><path d="M8 12.5l2.5 2.5L16 9.5" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <h3>Turn instructions into tasks</h3>
         <p>Paste a clinician's instructions and CareLoop Zero drafts concrete follow-up tasks — with dates only when one is actually stated, never invented.</p>
       </div>
-      <div class="feature-card reveal">
+      <div class="feature-card" data-tilt data-tilt-max="7" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.12">
         <svg class="ic" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="var(--accent)" stroke-width="1.6"/><path d="M12 7v5l3.5 2" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <h3>See what's overdue, at a glance</h3>
         <p>One dashboard shows what's pending, what's overdue, and what's done — filterable, so nothing needs to be held in your head.</p>
       </div>
-      <div class="feature-card reveal">
+      <div class="feature-card" data-tilt data-tilt-max="7" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.12">
         <svg class="ic" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="var(--accent)" stroke-width="1.6"/><path d="M12 16.5s-5-3.1-5-6.4A2.6 2.6 0 0112 8.3 2.6 2.6 0 0117 10.1c0 3.3-5 6.4-5 6.4z" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round"/></svg>
         <h3>Built for the messy reality of care</h3>
         <p>No account setup, no complexity. One page, built to be open on a phone in a waiting room.</p>
@@ -304,7 +340,7 @@ footer.site-foot{border-top:1px solid var(--border); padding-block:36px; padding
 <section class="demo" id="demo">
   <div class="wrap">
     <div class="section-head reveal">
-      <p class="eyebrow">Live demo</p>
+      <p class="eyebrow"><span class="live-dot"></span>Live demo</p>
       <h2>Try it yourself</h2>
       <p>This is the actual interface, running in your browser. Task data is synthetic and stored only in your browser's local storage — nothing is sent anywhere.</p>
     </div>
@@ -382,9 +418,26 @@ footer.site-foot{border-top:1px solid var(--border); padding-block:36px; padding
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
 <script>
 (function(){
   "use strict";
+
+  // ---- hero cursor spotlight ----
+  var heroEl = document.getElementById("top");
+  var reduceMotionForSpotlight = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (heroEl && !reduceMotionForSpotlight && window.matchMedia("(hover: hover)").matches) {
+    heroEl.addEventListener("mousemove", function(e){
+      var r = heroEl.getBoundingClientRect();
+      heroEl.style.setProperty("--mx", (e.clientX - r.left) + "px");
+      heroEl.style.setProperty("--my", (e.clientY - r.top) + "px");
+    });
+  }
+
+  // ---- tilt on feature cards ----
+  if (window.VanillaTilt && !reduceMotionForSpotlight) {
+    VanillaTilt.init(document.querySelectorAll("[data-tilt]"), {perspective: 900, scale: 1.02});
+  }
 
   // ---- scroll progress bar ----
   var progressEl = document.getElementById("progress");

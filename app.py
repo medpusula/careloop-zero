@@ -1,12 +1,15 @@
 import json
 import os
 import sqlite3
-from datetime import datetime, timezone
+import time
+import uuid
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, render_template, request, session
 
 load_dotenv()
 
@@ -15,6 +18,19 @@ DB_PATH = BASE_DIR / "careloop.db"
 
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "anthropic")
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
+
+# Each visitor gets their own isolated task list via a signed session cookie —
+# without this, every visitor to a public deployment would share one task list.
+MAX_AI_CALLS_PER_SESSION_PER_DAY = 20
+_ai_call_log = defaultdict(list)  # session_id -> [unix timestamps]; resets on restart, fine for a prototype
+
+SEED_TASKS = [
+    ("Book cardiology follow-up appointment", 10, "Cardiology clinic", "pending"),
+    ("Bring latest blood test results", None, "Internal medicine", "pending"),
+    ("Pick up physical therapy referral from referrals office", -3, "Orthopedics", "pending"),
+    ("Renew prescription", -20, "Family doctor", "completed"),
+    ("Schedule dietitian consultation", None, "Internal medicine", "pending"),
+]
 
 SYSTEM_PROMPT = (
     "You help turn a short, non-identifying, clinician-provided instruction into a list "
@@ -29,6 +45,8 @@ SYSTEM_PROMPT = (
 )
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-only-insecure-key-change-me")
+app.config.update(SESSION_COOKIE_SAMESITE="Lax", PERMANENT_SESSION_LIFETIME=timedelta(days=90))
 
 
 def get_db():
@@ -36,6 +54,25 @@ def get_db():
         g.db = sqlite3.connect(DB_PATH)
         g.db.row_factory = sqlite3.Row
     return g.db
+
+
+def get_session_id():
+    session.permanent = True
+    if "sid" not in session:
+        session["sid"] = uuid.uuid4().hex
+    return session["sid"]
+
+
+def seed_tasks_for_session(db, session_id):
+    now = datetime.now(timezone.utc)
+    for title, day_offset, source, status in SEED_TASKS:
+        due_date = (now + timedelta(days=day_offset)).date().isoformat() if day_offset is not None else None
+        db.execute(
+            "INSERT INTO tasks (title, due_date, source, status, origin, created_at, session_id) "
+            "VALUES (?, ?, ?, ?, 'manual', ?, ?)",
+            (title, due_date, source, status, now.isoformat(), session_id),
+        )
+    db.commit()
 
 
 @app.teardown_appcontext
@@ -56,10 +93,15 @@ def init_db():
             source TEXT,
             status TEXT NOT NULL DEFAULT 'pending',
             origin TEXT NOT NULL DEFAULT 'manual',
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            session_id TEXT
         )
         """
     )
+    try:
+        db.execute("ALTER TABLE tasks ADD COLUMN session_id TEXT")
+    except sqlite3.OperationalError:
+        pass  # already has the column (fresh table, or already migrated)
     db.commit()
     db.close()
 
@@ -74,23 +116,32 @@ def index():
 
 @app.route("/api/tasks", methods=["GET"])
 def list_tasks():
-    rows = get_db().execute("SELECT * FROM tasks ORDER BY created_at DESC").fetchall()
+    sid = get_session_id()
+    db = get_db()
+    count = db.execute("SELECT COUNT(*) FROM tasks WHERE session_id = ?", (sid,)).fetchone()[0]
+    if count == 0:
+        seed_tasks_for_session(db, sid)
+    rows = db.execute(
+        "SELECT * FROM tasks WHERE session_id = ? ORDER BY created_at DESC", (sid,)
+    ).fetchall()
     return jsonify([dict(row) for row in rows])
 
 
 @app.route("/api/tasks", methods=["POST"])
 def create_task():
+    sid = get_session_id()
     data = request.get_json()
     db = get_db()
     cur = db.execute(
-        "INSERT INTO tasks (title, due_date, source, status, origin, created_at) "
-        "VALUES (?, ?, ?, 'pending', ?, ?)",
+        "INSERT INTO tasks (title, due_date, source, status, origin, created_at, session_id) "
+        "VALUES (?, ?, ?, 'pending', ?, ?, ?)",
         (
             data["title"],
             data.get("due_date"),
             data.get("source"),
             data.get("origin", "manual"),
             datetime.now(timezone.utc).isoformat(),
+            sid,
         ),
     )
     db.commit()
@@ -99,6 +150,7 @@ def create_task():
 
 @app.route("/api/tasks/<int:task_id>", methods=["PUT"])
 def update_task(task_id):
+    sid = get_session_id()
     data = request.get_json()
     db = get_db()
     fields, values = [], []
@@ -108,25 +160,36 @@ def update_task(task_id):
             values.append(data[key])
     if fields:
         values.append(task_id)
-        db.execute(f"UPDATE tasks SET {', '.join(fields)} WHERE id = ?", values)
+        values.append(sid)
+        db.execute(f"UPDATE tasks SET {', '.join(fields)} WHERE id = ? AND session_id = ?", values)
         db.commit()
     return jsonify({"ok": True})
 
 
 @app.route("/api/tasks/<int:task_id>", methods=["DELETE"])
 def delete_task(task_id):
-    get_db().execute("DELETE FROM tasks WHERE id = ?", (task_id,))
-    get_db().commit()
+    sid = get_session_id()
+    db = get_db()
+    db.execute("DELETE FROM tasks WHERE id = ? AND session_id = ?", (task_id, sid))
+    db.commit()
     return jsonify({"ok": True})
 
 
 @app.route("/api/draft", methods=["POST"])
 def draft_tasks():
+    sid = get_session_id()
     instruction_text = (request.get_json() or {}).get("text", "").strip()
     if not instruction_text:
         return jsonify({"error": "empty_text"}), 400
     if not AI_API_KEY:
         return jsonify({"error": "no_api_key"}), 500
+
+    cutoff = time.time() - 86400
+    recent_calls = [t for t in _ai_call_log[sid] if t > cutoff]
+    if len(recent_calls) >= MAX_AI_CALLS_PER_SESSION_PER_DAY:
+        return jsonify({"error": "rate_limited", "detail": "Daily AI draft limit reached for this session. Try again tomorrow."}), 429
+    recent_calls.append(time.time())
+    _ai_call_log[sid] = recent_calls
 
     try:
         result = call_ai(instruction_text)

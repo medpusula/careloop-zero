@@ -1,261 +1,232 @@
-const taskListEl = document.getElementById("task-list");
-let currentFilter = "all";
-let allTasks = [];
+(function () {
+  "use strict";
 
-document.querySelectorAll(".tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById(btn.dataset.tab).classList.add("active");
-  });
-});
+  var filter = "all";
+  var today = new Date().toISOString().slice(0, 10);
 
-document.querySelectorAll(".filter-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    currentFilter = btn.dataset.filter;
-    renderTasks();
-  });
-});
-
-function isOverdue(task) {
-  if (!task.due_date || task.status === "completed") return false;
-  return new Date(task.due_date) < new Date(new Date().toDateString());
-}
-
-function filterTasks(tasks) {
-  switch (currentFilter) {
-    case "pending":
-      return tasks.filter((t) => t.status === "pending");
-    case "overdue":
-      return tasks.filter((t) => isOverdue(t));
-    case "completed":
-      return tasks.filter((t) => t.status === "completed");
-    case "no-date":
-      return tasks.filter((t) => !t.due_date);
-    default:
-      return tasks;
-  }
-}
-
-function renderTasks() {
-  const tasks = filterTasks(allTasks);
-  taskListEl.innerHTML = "";
-  if (tasks.length === 0) {
-    taskListEl.innerHTML = '<li class="task-meta">Bu filtrede görev yok.</li>';
-    return;
-  }
-  tasks.forEach((task) => {
-    const li = document.createElement("li");
-    li.className = "task-card" + (task.status === "completed" ? " completed" : "") + (isOverdue(task) ? " overdue" : "");
-
-    const main = document.createElement("div");
-    main.className = "task-main";
-
-    const title = document.createElement("div");
-    title.className = "task-title" + (task.status === "completed" ? " done" : "");
-    title.textContent = task.title;
-    if (task.origin === "ai_draft") {
-      const badge = document.createElement("span");
-      badge.className = "ai-badge";
-      badge.textContent = "AI önerisi (onaylandı)";
-      title.appendChild(badge);
-    }
-    main.appendChild(title);
-
-    const meta = document.createElement("div");
-    meta.className = "task-meta";
-    const dueText = task.due_date
-      ? (isOverdue(task) ? `<span class="overdue-label">Geciken: ${task.due_date}</span>` : `Son tarih: ${task.due_date}`)
-      : "Tarih bilinmiyor";
-    const sourceText = task.source ? ` · Kaynak: ${task.source}` : "";
-    meta.innerHTML = dueText + sourceText;
-    main.appendChild(meta);
-
-    li.appendChild(main);
-
-    const actions = document.createElement("div");
-    actions.className = "task-actions";
-
-    const toggleBtn = document.createElement("button");
-    toggleBtn.textContent = task.status === "completed" ? "Geri al" : "Tamamla";
-    toggleBtn.addEventListener("click", () => toggleStatus(task));
-    actions.appendChild(toggleBtn);
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent = "Sil";
-    deleteBtn.addEventListener("click", () => deleteTask(task.id));
-    actions.appendChild(deleteBtn);
-
-    li.appendChild(actions);
-    taskListEl.appendChild(li);
-  });
-}
-
-async function loadTasks() {
-  const res = await fetch("/api/tasks");
-  allTasks = await res.json();
-  renderTasks();
-}
-
-async function toggleStatus(task) {
-  const newStatus = task.status === "completed" ? "pending" : "completed";
-  await fetch(`/api/tasks/${task.id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ status: newStatus }),
-  });
-  loadTasks();
-}
-
-async function deleteTask(id) {
-  await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-  loadTasks();
-}
-
-document.getElementById("add-task-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const title = document.getElementById("task-title").value.trim();
-  const dueDate = document.getElementById("task-due-date").value || null;
-  const source = document.getElementById("task-source").value.trim() || null;
-  if (!title) return;
-
-  await fetch("/api/tasks", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, due_date: dueDate, source, origin: "manual" }),
-  });
-
-  e.target.reset();
-  document.querySelector('.tab-btn[data-tab="dashboard"]').click();
-  loadTasks();
-});
-
-document.getElementById("generate-draft-btn").addEventListener("click", async () => {
-  const text = document.getElementById("instruction-text").value.trim();
-  const errorEl = document.getElementById("draft-error");
-  const resultEl = document.getElementById("draft-result");
-  errorEl.textContent = "";
-  resultEl.innerHTML = "";
-  if (!text) return;
-
-  resultEl.innerHTML = '<p class="hint">Oluşturuluyor...</p>';
-
-  const res = await fetch("/api/draft", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
-  const data = await res.json();
-  resultEl.innerHTML = "";
-
-  if (!res.ok) {
-    errorEl.textContent = draftErrorMessage(data);
-    return;
+  function isOverdue(t) {
+    return t.due_date && t.status !== "completed" && t.due_date < today;
   }
 
-  renderDraft(text, data);
-});
-
-function draftErrorMessage(data) {
-  if (data.error === "no_api_key") return "AI_API_KEY ayarlanmamış. .env dosyasına anahtarınızı ekleyin.";
-  if (data.error === "ai_call_failed") return "AI servisine ulaşılamadı: " + (data.detail || "");
-  return "Taslak oluşturulamadı.";
-}
-
-function renderDraft(originalText, data) {
-  const resultEl = document.getElementById("draft-result");
-
-  const original = document.createElement("div");
-  original.className = "draft-original";
-  original.textContent = "Orijinal metin: " + originalText;
-  resultEl.appendChild(original);
-
-  if (data.clarification_needed) {
-    const clarify = document.createElement("div");
-    clarify.className = "clarification-box";
-    clarify.textContent = "AI netleştirme istiyor: " + data.clarification_needed;
-    resultEl.appendChild(clarify);
+  function escapeHtml(s) {
+    var d = document.createElement("div");
+    d.textContent = s == null ? "" : s;
+    return d.innerHTML;
   }
 
-  if (data.parse_error) {
-    const raw = document.createElement("div");
-    raw.className = "clarification-box";
-    raw.textContent = "AI çıktısı ayrıştırılamadı, ham çıktı: " + (data.raw_output || "");
-    resultEl.appendChild(raw);
-    return;
-  }
-
-  const tasks = data.tasks || [];
-  if (tasks.length === 0) {
-    const none = document.createElement("p");
-    none.className = "hint";
-    none.textContent = "AI bu metinden görev önermedi.";
-    resultEl.appendChild(none);
-    return;
-  }
-
-  const itemEls = tasks.map((t) => {
-    const item = document.createElement("div");
-    item.className = "draft-item";
-
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = true;
-
-    const fields = document.createElement("div");
-    fields.className = "draft-item-fields";
-
-    const titleInput = document.createElement("input");
-    titleInput.type = "text";
-    titleInput.value = t.title || "";
-
-    const dateInput = document.createElement("input");
-    dateInput.type = "date";
-    dateInput.value = t.due_date || "";
-
-    fields.appendChild(titleInput);
-    fields.appendChild(dateInput);
-
-    if (t.note) {
-      const note = document.createElement("div");
-      note.className = "draft-note";
-      note.textContent = t.note;
-      fields.appendChild(note);
-    }
-
-    item.appendChild(checkbox);
-    item.appendChild(fields);
-    resultEl.appendChild(item);
-
-    return { checkbox, titleInput, dateInput };
-  });
-
-  const saveBtn = document.createElement("button");
-  saveBtn.className = "draft-save-btn";
-  saveBtn.textContent = "Onaylananları Kaydet";
-  saveBtn.addEventListener("click", async () => {
-    const approved = itemEls.filter((el) => el.checkbox.checked && el.titleInput.value.trim());
-    for (const el of approved) {
-      await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: el.titleInput.value.trim(),
-          due_date: el.dateInput.value || null,
-          source: "AI taslağı: " + originalText.slice(0, 60),
-          origin: "ai_draft",
-        }),
+  function fetchTasks() {
+    fetch("/api/tasks")
+      .then(function (r) { return r.json(); })
+      .then(renderTasks)
+      .catch(function () {
+        document.getElementById("task-list").innerHTML =
+          '<li class="empty">Could not load tasks. Is the server running?</li>';
       });
-    }
-    document.getElementById("draft-result").innerHTML = '<p class="hint">Kaydedildi.</p>';
-    document.getElementById("instruction-text").value = "";
-    document.querySelector('.tab-btn[data-tab="dashboard"]').click();
-    loadTasks();
-  });
-  resultEl.appendChild(saveBtn);
-}
+  }
 
-loadTasks();
+  function renderTasks(tasks) {
+    var list = document.getElementById("task-list");
+    var shown = tasks.filter(function (t) {
+      if (filter === "pending") return t.status === "pending";
+      if (filter === "overdue") return isOverdue(t);
+      if (filter === "completed") return t.status === "completed";
+      if (filter === "no-date") return !t.due_date;
+      return true;
+    });
+    list.innerHTML = "";
+    if (shown.length === 0) {
+      list.innerHTML = '<li class="empty">No tasks in this filter.</li>';
+      return;
+    }
+    shown.forEach(function (t) {
+      var li = document.createElement("li");
+      li.className =
+        "task" + (t.status === "completed" ? " done" : "") + (isOverdue(t) ? " overdue" : "");
+      var meta = t.due_date
+        ? isOverdue(t)
+          ? "<b>Overdue: " + t.due_date + "</b>"
+          : "Due: " + t.due_date
+        : "No date";
+      if (t.source) meta += " · Source: " + escapeHtml(t.source);
+      var badge = t.origin === "ai" ? '<span class="badge">AI suggestion</span>' : "";
+      li.innerHTML =
+        '<div class="t-body"><div class="t-title">' + escapeHtml(t.title) + badge + "</div>" +
+        '<div class="t-meta">' + meta + "</div></div>" +
+        '<div class="t-actions">' +
+        '<button data-act="toggle" data-id="' + t.id + '">' +
+        (t.status === "completed" ? "Undo" : "Complete") +
+        "</button>" +
+        '<button data-act="del" data-id="' + t.id + '">Delete</button></div>';
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById("task-list").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    var id = btn.dataset.id;
+    if (btn.dataset.act === "toggle") {
+      var li = btn.closest(".task");
+      var completed = li.classList.contains("done");
+      fetch("/api/tasks/" + id, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: completed ? "pending" : "completed" }),
+      }).then(fetchTasks);
+    } else if (btn.dataset.act === "del") {
+      fetch("/api/tasks/" + id, { method: "DELETE" }).then(fetchTasks);
+    }
+  });
+
+  document.querySelectorAll(".filter-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".filter-btn").forEach(function (b) {
+        b.setAttribute("aria-pressed", "false");
+      });
+      btn.setAttribute("aria-pressed", "true");
+      filter = btn.dataset.filter;
+      fetchTasks();
+    });
+  });
+
+  document.querySelectorAll(".tab-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".tab-btn").forEach(function (b) {
+        b.setAttribute("aria-pressed", "false");
+      });
+      document.querySelectorAll(".panel").forEach(function (p) {
+        p.classList.remove("active");
+      });
+      btn.setAttribute("aria-pressed", "true");
+      document.getElementById(btn.dataset.tab).classList.add("active");
+      if (btn.dataset.tab === "dashboard") fetchTasks();
+    });
+  });
+
+  document.getElementById("add-task-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var title = document.getElementById("task-title").value.trim();
+    if (!title) return;
+    var due = document.getElementById("task-due-date").value || null;
+    var source = document.getElementById("task-source").value.trim() || null;
+    fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: title, due_date: due, source: source, origin: "manual" }),
+    }).then(function () {
+      e.target.reset();
+      document.querySelector('.tab-btn[data-tab="dashboard"]').click();
+    });
+  });
+
+  document.getElementById("ai-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var text = document.getElementById("instruction-text").value.trim();
+    var errBox = document.getElementById("draft-error");
+    var resultBox = document.getElementById("draft-result");
+    var submitBtn = document.getElementById("generate-draft-btn");
+    errBox.textContent = "";
+    resultBox.innerHTML = "";
+    if (!text) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Generating...";
+
+    fetch("/api/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text }),
+    })
+      .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+      .then(function (res) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Generate Draft";
+        if (!res.ok || res.data.error) {
+          var msg = {
+            no_api_key: "AI is not configured on this server.",
+            rate_limited: res.data.detail || "Daily AI limit reached for this session. Try again tomorrow.",
+            ai_call_failed: "The AI call failed. Try again in a moment.",
+            empty_text: "Enter some instruction text first.",
+          }[res.data.error] || "Something went wrong.";
+          errBox.textContent = msg;
+          return;
+        }
+        renderDraft(text, res.data);
+      })
+      .catch(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Generate Draft";
+        errBox.textContent = "Could not reach the server.";
+      });
+  });
+
+  function renderDraft(originalText, data) {
+    var box = document.getElementById("draft-result");
+    box.innerHTML = "";
+
+    var original = document.createElement("div");
+    original.className = "ai-original";
+    original.textContent = "Original text: " + originalText;
+    box.appendChild(original);
+
+    if (data.clarification_needed) {
+      var clar = document.createElement("div");
+      clar.className = "ai-note";
+      clar.textContent = "Needs clarification: " + data.clarification_needed;
+      box.appendChild(clar);
+    }
+
+    if (data.parse_error) {
+      var perr = document.createElement("div");
+      perr.className = "ai-note";
+      perr.textContent = "The AI response could not be parsed as structured tasks. Raw output is shown below.";
+      box.appendChild(perr);
+      var raw = document.createElement("div");
+      raw.className = "ai-original";
+      raw.textContent = data.raw_output || "";
+      box.appendChild(raw);
+      return;
+    }
+
+    var tasks = data.tasks || [];
+    if (tasks.length === 0) {
+      var none = document.createElement("div");
+      none.className = "ai-note";
+      none.textContent = "No concrete tasks were extracted from this text.";
+      box.appendChild(none);
+      return;
+    }
+
+    tasks.forEach(function (item) {
+      var el = document.createElement("div");
+      el.className = "ai-item";
+      var metaBits = [];
+      metaBits.push(item.due_date ? "Due: " + item.due_date : "No date (none invented)");
+      if (item.note) metaBits.push(item.note);
+      el.innerHTML =
+        '<div class="t-body"><span class="t-title">' + escapeHtml(item.title) + "</span>" +
+        '<div class="t-meta">' + escapeHtml(metaBits.join(" · ")) + "</div></div>" +
+        "<button>Accept</button>";
+      el.querySelector("button").addEventListener("click", function (ev) {
+        var acceptBtn = ev.target;
+        acceptBtn.disabled = true;
+        acceptBtn.textContent = "Adding...";
+        fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: item.title,
+            due_date: item.due_date || null,
+            source: "AI draft",
+            origin: "ai",
+          }),
+        }).then(function () {
+          acceptBtn.textContent = "Added ✓";
+        });
+      });
+      box.appendChild(el);
+    });
+  }
+
+  fetchTasks();
+})();

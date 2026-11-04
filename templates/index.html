@@ -1,60 +1,75 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CareLoop Zero</title>
+  <meta name="description" content="CareLoop Zero turns clinician instructions into tracked follow-up tasks for family caregivers.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%232f6f5e'/%3E%3Cpath d='M7 12.5l3 3 7-7' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header>
-    <h1>CareLoop Zero</h1>
-    <p class="tagline">Takip gereken sıradaki adımı bir arada tutar.</p>
-  </header>
-
-  <nav class="tabs">
-    <button class="tab-btn active" data-tab="dashboard">Panel</button>
-    <button class="tab-btn" data-tab="add">Görev Ekle</button>
-    <button class="tab-btn" data-tab="ai">AI ile Talimat Çöz</button>
-  </nav>
-
-  <main>
-    <section id="dashboard" class="tab-panel active">
-      <div class="filters">
-        <button class="filter-btn active" data-filter="all">Tümü</button>
-        <button class="filter-btn" data-filter="pending">Bekleyen</button>
-        <button class="filter-btn" data-filter="overdue">Geciken</button>
-        <button class="filter-btn" data-filter="completed">Tamamlanan</button>
-        <button class="filter-btn" data-filter="no-date">Tarihsiz</button>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="12" cy="12" r="11" fill="var(--accent)"/>
+          <path d="M7 12.5l3 3 7-7" stroke="var(--accent-ink)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>CareLoop Zero</h1>
       </div>
-      <ul id="task-list"></ul>
-    </section>
+      <p class="tagline">This is the real app — your tasks here are private to you and saved on the server.</p>
+      <nav class="tabs">
+        <button class="tab-btn" data-tab="dashboard" aria-pressed="true">Dashboard</button>
+        <button class="tab-btn" data-tab="add" aria-pressed="false">Add Task</button>
+        <button class="tab-btn" data-tab="ai" aria-pressed="false">AI Instruction Parser</button>
+      </nav>
+    </header>
 
-    <section id="add" class="tab-panel">
-      <h2>Yeni Görev</h2>
-      <form id="add-task-form">
-        <label>Başlık
-          <input type="text" id="task-title" required>
-        </label>
-        <label>Son tarih (opsiyonel)
-          <input type="date" id="task-due-date">
-        </label>
-        <label>Kaynak (opsiyonel — hangi klinisyen/randevu)
-          <input type="text" id="task-source">
-        </label>
-        <button type="submit">Ekle</button>
-      </form>
-    </section>
+    <main>
+      <section id="dashboard" class="panel active">
+        <div class="filters" role="group" aria-label="Filter">
+          <button class="filter-btn" data-filter="all" aria-pressed="true">All</button>
+          <button class="filter-btn" data-filter="pending" aria-pressed="false">Pending</button>
+          <button class="filter-btn" data-filter="overdue" aria-pressed="false">Overdue</button>
+          <button class="filter-btn" data-filter="completed" aria-pressed="false">Completed</button>
+          <button class="filter-btn" data-filter="no-date" aria-pressed="false">No date</button>
+        </div>
+        <ul id="task-list" class="tasks"></ul>
+      </section>
 
-    <section id="ai" class="tab-panel">
-      <h2>Klinisyen Talimatından Görev Taslağı</h2>
-      <p class="hint">Sadece sentetik / kimliklendirilemeyen metin yapıştırın. Gerçek hasta adı, TC kimlik no veya iletişim bilgisi girmeyin.</p>
-      <textarea id="instruction-text" rows="5" placeholder="Örn: Hastanın 3 hafta içinde kardiyoloji kontrolüne gelmesi gerekiyor..."></textarea>
-      <button id="generate-draft-btn">Taslak Oluştur</button>
-      <div id="draft-error" class="error"></div>
-      <div id="draft-result"></div>
-    </section>
-  </main>
+      <section id="add" class="panel">
+        <p class="hint">Add a task manually.</p>
+        <form id="add-task-form">
+          <label>Title
+            <input type="text" id="task-title" required>
+          </label>
+          <label>Due date (optional)
+            <input type="date" id="task-due-date">
+          </label>
+          <label>Source (optional — which clinician/appointment)
+            <input type="text" id="task-source" placeholder="e.g. Cardiology clinic">
+          </label>
+          <button type="submit" class="primary">Add</button>
+        </form>
+      </section>
+
+      <section id="ai" class="panel">
+        <p class="hint">Paste only synthetic / non-identifying text. Do not enter a real patient's name, ID number, or contact details.</p>
+        <form id="ai-form">
+          <label>Instruction text
+            <textarea id="instruction-text" rows="5" placeholder="e.g. The patient needs a cardiology follow-up within 3 weeks..."></textarea>
+          </label>
+          <button type="submit" class="primary" id="generate-draft-btn">Generate Draft</button>
+        </form>
+        <div id="draft-error" class="error"></div>
+        <div id="draft-result"></div>
+      </section>
+    </main>
+
+    <footer class="note">Prototype — synthetic data only. <a href="https://github.com/ughurpirali/careloop-zero" target="_blank" rel="noopener">Source code ↗</a></footer>
+  </div>
 
   <script src="/static/app.js"></script>
 </body>
