@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CareLoop Zero</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>CareLoop Zero</h1>
+    <p class="tagline">Takip gereken sıradaki adımı bir arada tutar.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Panel</button>
+    <button class="tab-btn" data-tab="add">Görev Ekle</button>
+    <button class="tab-btn" data-tab="ai">AI ile Talimat Çöz</button>
+  </nav>
+
+  <main>
+    <section id="dashboard" class="tab-panel active">
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all">Tümü</button>
+        <button class="filter-btn" data-filter="pending">Bekleyen</button>
+        <button class="filter-btn" data-filter="overdue">Geciken</button>
+        <button class="filter-btn" data-filter="completed">Tamamlanan</button>
+        <button class="filter-btn" data-filter="no-date">Tarihsiz</button>
+      </div>
+      <ul id="task-list"></ul>
+    </section>
+
+    <section id="add" class="tab-panel">
+      <h2>Yeni Görev</h2>
+      <form id="add-task-form">
+        <label>Başlık
+          <input type="text" id="task-title" required>
+        </label>
+        <label>Son tarih (opsiyonel)
+          <input type="date" id="task-due-date">
+        </label>
+        <label>Kaynak (opsiyonel — hangi klinisyen/randevu)
+          <input type="text" id="task-source">
+        </label>
+        <button type="submit">Ekle</button>
+      </form>
+    </section>
+
+    <section id="ai" class="tab-panel">
+      <h2>Klinisyen Talimatından Görev Taslağı</h2>
+      <p class="hint">Sadece sentetik / kimliklendirilemeyen metin yapıştırın. Gerçek hasta adı, TC kimlik no veya iletişim bilgisi girmeyin.</p>
+      <textarea id="instruction-text" rows="5" placeholder="Örn: Hastanın 3 hafta içinde kardiyoloji kontrolüne gelmesi gerekiyor..."></textarea>
+      <button id="generate-draft-btn">Taslak Oluştur</button>
+      <div id="draft-error" class="error"></div>
+      <div id="draft-result"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

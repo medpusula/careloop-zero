@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CareLoop Zero — Demo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+/* layout: single-column mobile-first app shell, sticky header, tab nav, card list */
+:root{
+  --bg:#f6f4ef; --surface:#ffffff; --text:#1f2420; --muted:#6b7266;
+  --border:#e3e0d6; --accent:#2f6f5e; --accent-ink:#ffffff;
+  --overdue:#a8431f; --overdue-bg:#fbeee8; --ai:#7c5cbf; --ai-bg:#f1ecfb;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16181a; --surface:#1f2320; --text:#e9ebe6; --muted:#9aa29a;
+    --border:#2c322c; --accent:#6fb79e; --accent-ink:#0f1512;
+    --overdue:#e2896a; --overdue-bg:#2c201a; --ai:#b7a4e8; --ai-bg:#241f30;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16181a; --surface:#1f2320; --text:#e9ebe6; --muted:#9aa29a;
+  --border:#2c322c; --accent:#6fb79e; --accent-ink:#0f1512;
+  --overdue:#e2896a; --overdue-bg:#2c201a; --ai:#b7a4e8; --ai-bg:#241f30;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:"Work Sans",system-ui,sans-serif; font-size:15px; line-height:1.5;
+}
+.shell{
+  max-width:480px; margin:0 auto;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+}
+header.top{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  background:var(--bg); padding-block:18px 10px; border-bottom:1px solid var(--border);
+}
+h1{
+  font-family:"Fraunces",serif; font-weight:600; font-size:1.7rem; margin:0 0 2px;
+}
+.tagline{color:var(--muted); font-size:0.88rem; margin:0 0 14px}
+nav.tabs{display:flex; gap:6px}
+.tab-btn{
+  flex:1; min-width:0; border:1px solid var(--border); background:var(--surface);
+  color:var(--text); padding:9px 6px; border-radius:9px; font:inherit; font-size:0.82rem;
+  font-weight:500; cursor:pointer;
+}
+.tab-btn[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+main{padding-block:16px 48px}
+.panel{display:none}
+.panel.active{display:block}
+.filters{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px}
+.filter-btn{
+  border:1px solid var(--border); background:var(--surface); color:var(--text);
+  padding:6px 11px; border-radius:999px; font:inherit; font-size:0.78rem; cursor:pointer;
+}
+.filter-btn[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+ul.tasks{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px}
+.task{
+  background:var(--surface); border:1px solid var(--border); border-radius:11px;
+  padding:12px 13px; display:flex; gap:10px; align-items:flex-start;
+}
+.task.overdue{border-color:var(--overdue); background:var(--overdue-bg)}
+.task.done .t-title{text-decoration:line-through; color:var(--muted)}
+.t-body{flex:1; min-width:0}
+.t-title{font-weight:600}
+.badge{
+  display:inline-block; font-size:0.68rem; font-weight:600; background:var(--ai);
+  color:#fff; padding:2px 7px; border-radius:999px; margin-left:6px; vertical-align:1px;
+}
+.t-meta{font-size:0.78rem; color:var(--muted); margin-top:3px}
+.t-meta b{color:var(--overdue); font-weight:600}
+.t-actions{display:flex; flex-direction:column; gap:5px}
+.t-actions button{
+  border:1px solid var(--border); background:var(--bg); color:var(--text);
+  border-radius:7px; padding:4px 9px; font:inherit; font-size:0.74rem; cursor:pointer; white-space:nowrap;
+}
+.empty{color:var(--muted); font-size:0.88rem; padding:20px 0; text-align:center}
+form{display:flex; flex-direction:column; gap:12px}
+label{display:flex; flex-direction:column; gap:5px; font-size:0.85rem; font-weight:500}
+input,textarea{
+  border:1px solid var(--border); background:var(--surface); color:var(--text);
+  border-radius:8px; padding:9px 11px; font:inherit; width:100%;
+}
+textarea{resize:vertical; font-family:inherit}
+button.primary{
+  align-self:flex-start; background:var(--accent); color:var(--accent-ink); border:none;
+  border-radius:8px; padding:10px 18px; font:inherit; font-weight:600; cursor:pointer;
+}
+.hint{color:var(--muted); font-size:0.82rem; margin:0 0 12px}
+.ai-original{
+  background:var(--surface); border:1px solid var(--border); border-radius:9px;
+  padding:10px 12px; font-size:0.82rem; color:var(--muted); margin:14px 0 10px; white-space:pre-wrap;
+}
+.ai-note{
+  background:var(--ai-bg); border:1px solid var(--ai); color:var(--text); border-radius:9px;
+  padding:9px 12px; font-size:0.8rem; margin-bottom:12px;
+}
+.ai-item{
+  border:1px solid var(--border); background:var(--surface); border-radius:9px;
+  padding:11px 12px; margin-bottom:8px;
+}
+.ai-item .t-title{display:block; margin-bottom:3px}
+.ai-item .t-meta{margin-top:0}
+footer.note{color:var(--muted); font-size:0.76rem; text-align:center; padding:22px 0 10px; border-top:1px solid var(--border); margin-top:20px}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <header class="top">
+    <h1>CareLoop Zero</h1>
+    <p class="tagline">Keeps family caregivers' next follow-up steps in one place.</p>
+    <nav class="tabs">
+      <button class="tab-btn" data-tab="dash" aria-pressed="true">Dashboard</button>
+      <button class="tab-btn" data-tab="add" aria-pressed="false">Add Task</button>
+      <button class="tab-btn" data-tab="ai" aria-pressed="false">AI Demo</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="panel active" id="panel-dash">
+      <div class="filters" role="group" aria-label="Filter">
+        <button class="filter-btn" data-filter="all" aria-pressed="true">All</button>
+        <button class="filter-btn" data-filter="pending" aria-pressed="false">Pending</button>
+        <button class="filter-btn" data-filter="overdue" aria-pressed="false">Overdue</button>
+        <button class="filter-btn" data-filter="completed" aria-pressed="false">Completed</button>
+        <button class="filter-btn" data-filter="nodate" aria-pressed="false">No date</button>
+      </div>
+      <ul class="tasks" id="task-list"></ul>
+    </section>
+
+    <section class="panel" id="panel-add">
+      <p class="hint">Add a new task. For synthetic/demo data only.</p>
+      <form id="add-form">
+        <label>Title
+          <input type="text" id="f-title" required>
+        </label>
+        <label>Due date (optional)
+          <input type="date" id="f-date">
+        </label>
+        <label>Source (optional)
+          <input type="text" id="f-source" placeholder="e.g. Cardiology clinic">
+        </label>
+        <button type="submit" class="primary">Add</button>
+      </form>
+    </section>
+
+    <section class="panel" id="panel-ai">
+      <p class="hint">Demo of extracting a task draft from a clinician's instructions. Use synthetic text only.</p>
+      <form id="ai-form">
+        <label>Instruction text
+          <textarea id="ai-text" rows="4" placeholder="e.g. The patient needs a cardiology follow-up within 3 weeks...">The patient needs a cardiology follow-up within 3 weeks. Before the visit, they must bring the latest blood test results and the ECG printout. A physical therapy referral will also be issued, which they need to pick up from the hospital referrals office.</textarea>
+        </label>
+        <button type="submit" class="primary">Generate Draft</button>
+      </form>
+      <div id="ai-result"></div>
+    </section>
+  </main>
+
+  <footer class="note">Demo version — synthetic data, stored in your browser. The real version has been tested locally with a Flask backend and live AI integration. Source code: this repository.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var STORE_KEY = "careloop_demo_tasks_v1";
+
+  var SEED = [
+    {id:1, title:"Book cardiology follow-up appointment", due:addDays(10), source:"Cardiology clinic", status:"pending"},
+    {id:2, title:"Bring latest blood test results", due:null, source:"Internal medicine", status:"pending"},
+    {id:3, title:"Pick up physical therapy referral from referrals office", due:addDays(-3), source:"Orthopedics", status:"pending"},
+    {id:4, title:"Renew prescription", due:addDays(-20), source:"Family doctor", status:"completed"},
+    {id:5, title:"Schedule dietitian consultation", due:null, source:"Internal medicine", status:"pending"}
+  ];
+
+  function addDays(n){
+    var d = new Date(); d.setDate(d.getDate()+n);
+    return d.toISOString().slice(0,10);
+  }
+
+  function loadTasks(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    saveTasks(SEED);
+    return SEED.slice();
+  }
+  function saveTasks(tasks){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(tasks)); }catch(e){}
+  }
+
+  var tasks = loadTasks();
+  var filter = "all";
+  var today = new Date().toISOString().slice(0,10);
+
+  function isOverdue(t){
+    return t.due && t.status !== "completed" && t.due < today;
+  }
+
+  function render(){
+    var list = document.getElementById("task-list");
+    var shown = tasks.filter(function(t){
+      if(filter==="pending") return t.status==="pending";
+      if(filter==="overdue") return isOverdue(t);
+      if(filter==="completed") return t.status==="completed";
+      if(filter==="nodate") return !t.due;
+      return true;
+    });
+    list.innerHTML = "";
+    if(shown.length===0){
+      list.innerHTML = '<li class="empty">No tasks in this filter.</li>';
+      return;
+    }
+    shown.forEach(function(t){
+      var li = document.createElement("li");
+      li.className = "task" + (t.status==="completed" ? " done":"") + (isOverdue(t) ? " overdue":"");
+      var meta = t.due
+        ? (isOverdue(t) ? "<b>Overdue: "+t.due+"</b>" : "Due: "+t.due)
+        : "No date";
+      if(t.source) meta += " · Source: " + t.source;
+      var badge = t.ai ? '<span class="badge">AI suggestion</span>' : "";
+      li.innerHTML =
+        '<div class="t-body"><div class="t-title">'+escapeHtml(t.title)+badge+'</div>'+
+        '<div class="t-meta">'+meta+'</div></div>'+
+        '<div class="t-actions">'+
+        '<button data-act="toggle" data-id="'+t.id+'">'+(t.status==="completed"?"Undo":"Complete")+'</button>'+
+        '<button data-act="del" data-id="'+t.id+'">Delete</button></div>';
+      list.appendChild(li);
+    });
+  }
+
+  function escapeHtml(s){
+    var d = document.createElement("div"); d.textContent = s; return d.innerHTML;
+  }
+
+  document.getElementById("task-list").addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-act]");
+    if(!btn) return;
+    var id = Number(btn.dataset.id);
+    if(btn.dataset.act === "toggle"){
+      tasks = tasks.map(function(t){
+        if(t.id!==id) return t;
+        return Object.assign({}, t, {status: t.status==="completed" ? "pending":"completed"});
+      });
+    } else if(btn.dataset.act === "del"){
+      tasks = tasks.filter(function(t){ return t.id!==id; });
+    }
+    saveTasks(tasks);
+    render();
+  });
+
+  document.querySelectorAll(".filter-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      document.querySelectorAll(".filter-btn").forEach(function(b){ b.setAttribute("aria-pressed","false"); });
+      btn.setAttribute("aria-pressed","true");
+      filter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  document.querySelectorAll(".tab-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      document.querySelectorAll(".tab-btn").forEach(function(b){ b.setAttribute("aria-pressed","false"); });
+      document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
+      btn.setAttribute("aria-pressed","true");
+      document.getElementById("panel-"+btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  document.getElementById("add-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var title = document.getElementById("f-title").value.trim();
+    if(!title) return;
+    var due = document.getElementById("f-date").value || null;
+    var source = document.getElementById("f-source").value.trim() || null;
+    var nextId = tasks.reduce(function(m,t){ return Math.max(m,t.id); }, 0) + 1;
+    tasks.push({id:nextId, title:title, due:due, source:source, status:"pending"});
+    saveTasks(tasks);
+    e.target.reset();
+    document.querySelector('.tab-btn[data-tab="dash"]').click();
+    render();
+  });
+
+  // Real result from a live Groq (openai/gpt-oss-120b) call made during development
+  // against the default sample instruction text above; shown statically here because
+  // this public page cannot safely hold a private AI API key client-side.
+  var DEMO_AI_RESULT = [
+    {title:"Schedule cardiology follow-up appointment", due:null, note:"Needed within 3 weeks — no exact date given, so none was invented."},
+    {title:"Bring latest blood test results and ECG printout", due:null, note:"To bring to the cardiology appointment."},
+    {title:"Pick up physical therapy referral from hospital referrals office", due:null, note:null}
+  ];
+
+  document.getElementById("ai-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var box = document.getElementById("ai-result");
+    var text = document.getElementById("ai-text").value.trim();
+    box.innerHTML = "";
+    if(!text) return;
+
+    var original = document.createElement("div");
+    original.className = "ai-original";
+    original.textContent = "Original text: " + text;
+    box.appendChild(original);
+
+    var note = document.createElement("div");
+    note.className = "ai-note";
+    note.textContent = "Demo mode: this result was genuinely produced by a live AI call (Groq, openai/gpt-oss-120b) earlier in the local version of this app — no live API call runs here; a fixed example is shown instead to keep the API key safe.";
+    box.appendChild(note);
+
+    DEMO_AI_RESULT.forEach(function(item){
+      var el = document.createElement("div");
+      el.className = "ai-item";
+      var metaBits = [];
+      metaBits.push(item.due ? ("Due: "+item.due) : "No date (none invented)");
+      if(item.note) metaBits.push(item.note);
+      el.innerHTML = '<span class="t-title">'+escapeHtml(item.title)+'</span>'+
+        '<div class="t-meta">'+escapeHtml(metaBits.join(" · "))+'</div>';
+      box.appendChild(el);
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

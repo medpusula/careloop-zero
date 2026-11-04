@@ -1,0 +1,192 @@
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --text: #1f2430;
+  --muted: #6b7280;
+  --border: #e2e4e8;
+  --accent: #2f6f5e;
+  --accent-contrast: #ffffff;
+  --overdue: #b3401f;
+  --ai-badge: #8a5cf6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171c;
+    --surface: #1e2128;
+    --text: #e7e9ee;
+    --muted: #9aa0ab;
+    --border: #2d313a;
+    --accent: #5fb79d;
+    --accent-contrast: #0f1115;
+    --overdue: #e2795a;
+    --ai-badge: #b39bf5;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  padding: 24px 16px 12px;
+  text-align: center;
+}
+
+header h1 { margin: 0 0 4px; }
+.tagline { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.tab-btn, .filter-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.tab-btn.active, .filter-btn.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+#task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.task-card.completed { opacity: 0.6; }
+.task-card.overdue { border-color: var(--overdue); }
+
+.task-main { flex: 1; }
+.task-title { font-weight: 600; }
+.task-title.done { text-decoration: line-through; }
+.task-meta { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+.task-meta .overdue-label { color: var(--overdue); font-weight: 600; }
+
+.ai-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  background: var(--ai-badge);
+  color: #fff;
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-left: 6px;
+}
+
+.task-actions { display: flex; gap: 6px; }
+.task-actions button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+form { display: flex; flex-direction: column; gap: 12px; max-width: 420px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+input, textarea {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.95rem;
+}
+textarea { width: 100%; font-family: inherit; }
+
+button[type="submit"], #generate-draft-btn, .draft-save-btn {
+  align-self: flex-start;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.hint { color: var(--muted); font-size: 0.85rem; }
+.error { color: var(--overdue); margin: 8px 0; }
+
+.draft-original {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 12px 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.draft-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.draft-item input[type="text"], .draft-item input[type="date"] {
+  width: 100%;
+}
+
+.draft-item-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.draft-note { font-size: 0.8rem; color: var(--muted); }
+
+.clarification-box {
+  border: 1px solid var(--ai-badge);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+}
