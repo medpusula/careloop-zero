@@ -3,6 +3,8 @@
 
   var filter = "all";
   var today = new Date().toISOString().slice(0, 10);
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var hasGsap = !!window.gsap && !reduceMotion;
 
   function isOverdue(t) {
     return t.due_date && t.status !== "completed" && t.due_date < today;
@@ -59,22 +61,44 @@
         '<button data-act="del" data-id="' + t.id + '">Delete</button></div>';
       list.appendChild(li);
     });
+    if (hasGsap && list.children.length) {
+      gsap.from(list.children, { opacity: 0, y: 10, duration: 0.35, stagger: 0.05, ease: "power2.out" });
+    }
   }
 
   document.getElementById("task-list").addEventListener("click", function (e) {
     var btn = e.target.closest("button[data-act]");
     if (!btn) return;
     var id = btn.dataset.id;
+    var li = btn.closest(".task");
+
     if (btn.dataset.act === "toggle") {
-      var li = btn.closest(".task");
       var completed = li.classList.contains("done");
-      fetch("/api/tasks/" + id, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: completed ? "pending" : "completed" }),
-      }).then(fetchTasks);
+      var apply = function () {
+        fetch("/api/tasks/" + id, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: completed ? "pending" : "completed" }),
+        }).then(fetchTasks);
+      };
+      if (hasGsap) {
+        gsap.to(li, { scale: 0.98, duration: 0.08, yoyo: true, repeat: 1, onComplete: apply });
+      } else {
+        apply();
+      }
     } else if (btn.dataset.act === "del") {
-      fetch("/api/tasks/" + id, { method: "DELETE" }).then(fetchTasks);
+      var doDelete = function () {
+        fetch("/api/tasks/" + id, { method: "DELETE" }).then(fetchTasks);
+      };
+      if (hasGsap) {
+        gsap.to(li, {
+          opacity: 0, x: 24, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0,
+          duration: 0.3, ease: "power1.in", onStart: function () { li.style.overflow = "hidden"; },
+          onComplete: doDelete,
+        });
+      } else {
+        doDelete();
+      }
     }
   });
 
@@ -89,17 +113,30 @@
     });
   });
 
+  function switchTab(tabId) {
+    var current = document.querySelector(".panel.active");
+    var next = document.getElementById(tabId);
+    if (!next || current === next) return;
+    var activate = function () {
+      if (current) current.classList.remove("active");
+      next.classList.add("active");
+      if (hasGsap) gsap.fromTo(next, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" });
+      if (tabId === "dashboard") fetchTasks();
+    };
+    if (hasGsap && current) {
+      gsap.to(current, { opacity: 0, y: -6, duration: 0.15, ease: "power1.in", onComplete: activate });
+    } else {
+      activate();
+    }
+  }
+
   document.querySelectorAll(".tab-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       document.querySelectorAll(".tab-btn").forEach(function (b) {
         b.setAttribute("aria-pressed", "false");
       });
-      document.querySelectorAll(".panel").forEach(function (p) {
-        p.classList.remove("active");
-      });
       btn.setAttribute("aria-pressed", "true");
-      document.getElementById(btn.dataset.tab).classList.add("active");
-      if (btn.dataset.tab === "dashboard") fetchTasks();
+      switchTab(btn.dataset.tab);
     });
   });
 
@@ -131,6 +168,9 @@
 
     submitBtn.disabled = true;
     submitBtn.textContent = "Generating...";
+    var pulse = hasGsap
+      ? gsap.to(submitBtn, { opacity: 0.6, duration: 0.6, repeat: -1, yoyo: true, ease: "sine.inOut" })
+      : null;
 
     fetch("/api/draft", {
       method: "POST",
@@ -139,6 +179,8 @@
     })
       .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
       .then(function (res) {
+        if (pulse) pulse.kill();
+        gsap && gsap.set(submitBtn, { opacity: 1 });
         submitBtn.disabled = false;
         submitBtn.textContent = "Generate Draft";
         if (!res.ok || res.data.error) {
@@ -154,6 +196,8 @@
         renderDraft(text, res.data);
       })
       .catch(function () {
+        if (pulse) pulse.kill();
+        gsap && gsap.set(submitBtn, { opacity: 1 });
         submitBtn.disabled = false;
         submitBtn.textContent = "Generate Draft";
         errBox.textContent = "Could not reach the server.";
@@ -197,6 +241,7 @@
       return;
     }
 
+    var items = [];
     tasks.forEach(function (item) {
       var el = document.createElement("div");
       el.className = "ai-item";
@@ -222,10 +267,19 @@
           }),
         }).then(function () {
           acceptBtn.textContent = "Added ✓";
+          if (hasGsap) gsap.fromTo(acceptBtn, { scale: 1.15 }, { scale: 1, duration: 0.3, ease: "back.out(3)" });
         });
       });
       box.appendChild(el);
+      items.push(el);
     });
+    if (hasGsap && items.length) {
+      gsap.from(items, { opacity: 0, y: 10, duration: 0.35, stagger: 0.08, ease: "power2.out" });
+    }
+  }
+
+  if (hasGsap) {
+    gsap.from(".reveal", { opacity: 0, y: 14, duration: 0.5, stagger: 0.07, ease: "power2.out" });
   }
 
   fetchTasks();

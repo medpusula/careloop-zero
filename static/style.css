@@ -34,9 +34,18 @@ body{
 }
 .shell{max-width:520px; margin:0 auto; padding:24px 16px 48px}
 header.top{
+  position:relative; overflow:hidden;
   background:var(--surface); border:1px solid var(--border); border-radius:18px;
   box-shadow:var(--shadow); padding:20px 20px 16px; margin-bottom:16px;
 }
+.bg-blobs{position:absolute; inset:0; overflow:hidden; z-index:0; pointer-events:none}
+.blob{position:absolute; border-radius:50%; filter:blur(50px); opacity:0.3; will-change:transform}
+.blob-1{width:200px; height:200px; background:var(--accent); top:-90px; right:-50px; animation:blobdrift1 20s ease-in-out infinite}
+.blob-2{width:160px; height:160px; background:var(--ai); bottom:-100px; left:-40px; animation:blobdrift2 24s ease-in-out infinite}
+@keyframes blobdrift1{0%,100%{transform:translate(0,0)} 50%{transform:translate(-18px,14px)}}
+@keyframes blobdrift2{0%,100%{transform:translate(0,0)} 50%{transform:translate(14px,-12px)}}
+@media (prefers-reduced-motion: reduce){ .blob{animation:none} }
+header.top > *{position:relative; z-index:1}
 .brand{display:flex; align-items:center; gap:9px; margin-bottom:8px}
 .brand .mark{width:28px; height:28px; flex-shrink:0}
 h1{font-family:"Fraunces",serif; font-weight:600; font-size:1.45rem; margin:0}
