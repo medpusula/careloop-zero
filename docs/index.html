@@ -80,14 +80,15 @@ body{
 .brand{display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--text)}
 .brand .mark{width:24px; height:24px; flex-shrink:0}
 .brand-name{font-family:"Fraunces",serif; font-weight:600; font-size:1.05rem}
-.nav-links{display:flex; align-items:center; gap:4px}
+.nav-links{display:flex; align-items:center; gap:2px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; max-width:100%}
+.nav-links::-webkit-scrollbar{display:none}
 .nav-links a{
-  color:var(--muted); text-decoration:none; font-size:0.85rem; font-weight:500;
-  padding:7px 10px; border-radius:7px; transition:color .15s ease, background-color .15s ease;
+  color:var(--muted); text-decoration:none; font-size:0.83rem; font-weight:500; white-space:nowrap;
+  padding:7px 8px; border-radius:7px; transition:color .15s ease, background-color .15s ease;
 }
 .nav-links a:hover{color:var(--text); background:var(--surface-2)}
-.nav-links a.ext{color:var(--accent); display:none}
-@media (min-width:560px){ .nav-links a.ext{display:inline-block} }
+.nav-links a.ext{color:var(--accent)}
+@media (max-width:420px){ .nav-links a:not(.ext){display:none} }
 
 /* hero */
 .hero{padding-block:clamp(48px,9vw,96px) clamp(40px,7vw,72px); position:relative; overflow:clip}
@@ -264,6 +265,7 @@ footer.site-foot{border-top:1px solid var(--border); padding-block:36px; padding
       <a href="#problem">Problem</a>
       <a href="#solution">Solution</a>
       <a href="#demo">Demo</a>
+      <a class="ext" href="https://careloop-zero.onrender.com/" target="_blank" rel="noopener">Live App ↗</a>
       <a class="ext" href="https://github.com/ughurpirali/careloop-zero" target="_blank" rel="noopener">GitHub ↗</a>
     </div>
   </div>
@@ -285,8 +287,9 @@ footer.site-foot{border-top:1px solid var(--border); padding-block:36px; padding
     <p class="tagline reveal">CareLoop Zero keeps a family caregiver's next step in one place.</p>
     <p class="pitch reveal">When a doctor says "come back in three weeks," that instruction has to survive stress, exhaustion, and weeks of ordinary life. CareLoop Zero turns clinician instructions into tracked tasks, so a referral or test result doesn't quietly fall through the cracks.</p>
     <div class="cta-row reveal">
-      <a class="btn btn-primary" href="#demo">Try the live demo</a>
-      <a class="btn btn-ghost" href="https://github.com/ughurpirali/careloop-zero" target="_blank" rel="noopener">View source on GitHub ↗</a>
+      <a class="btn btn-primary" href="https://careloop-zero.onrender.com/" target="_blank" rel="noopener">Try the real app — live AI ↗</a>
+      <a class="btn btn-ghost" href="#demo">Try the interactive demo</a>
+      <a class="btn btn-ghost" href="https://github.com/ughurpirali/careloop-zero" target="_blank" rel="noopener">View source ↗</a>
     </div>
     <div class="meta-row reveal">
       <span class="meta-chip">Solo-built prototype</span>
@@ -409,11 +412,12 @@ footer.site-foot{border-top:1px solid var(--border); padding-block:36px; padding
         CareLoop Zero
       </div>
       <div class="foot-links">
+        <a href="https://careloop-zero.onrender.com/" target="_blank" rel="noopener">Live app ↗</a>
         <a href="https://github.com/ughurpirali/careloop-zero" target="_blank" rel="noopener">Source code ↗</a>
         <a href="#top">Back to top ↑</a>
       </div>
     </div>
-    <p class="foot-note">Built solo by Uğur Pirali in Istanbul, Türkiye. The real version runs this same code locally with a Flask backend and live AI integration (tested with Groq, openai/gpt-oss-120b) — not deployed publicly here since it holds a private API key.</p>
+    <p class="foot-note">Built solo by Uğur Pirali in Istanbul, Türkiye. The real version is deployed with a live Flask backend and real AI integration (Groq, openai/gpt-oss-120b) at <a href="https://careloop-zero.onrender.com/" target="_blank" rel="noopener">careloop-zero.onrender.com</a>. This static demo page stays separate since it can't safely hold the private API key.</p>
   </div>
 </footer>
 
